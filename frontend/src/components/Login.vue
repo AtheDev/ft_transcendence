@@ -11,7 +11,7 @@ const generateState = () => {
   }
   return state;
 };
-
+const name = ref('')
 const baseUrl = 'https://api.intra.42.fr/oauth/authorize?';
 const state = generateState();
 window.sessionStorage.setItem('state_token', state);
@@ -32,4 +32,6 @@ const requestUri = ref(baseUrl + qs);
   {{ requestUri }}
   <h2>Login</h2>
   <a :href="requestUri">Login</a>
+  <input type="text" v-model="name" />
+  {{ name }}
 </template>
