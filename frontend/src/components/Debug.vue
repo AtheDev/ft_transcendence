@@ -1,53 +1,45 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
 import {
-  getAllUsers,
-  getUserByUsername,
-  createUser,
-  updateUser,
-  deleteUser
-} from '../requests/userRequests';
-import {
   getAllMatches,
   getMatchById,
   createMatch,
   updateMatch,
   deleteMatch
-} from '../requests/matchRequests';
+} from '../services/matchRequests';
+import { Get, Post, Patch, Delete } from '@/services/requests';
 
 import { useUserStore } from '@/stores/user';
 import { storeToRefs } from 'pinia';
 import type { User } from '@/models/user.model';
 
 // Request url to API
-const url = 'http://localhost:3000/users';
+const urlUser = 'http://localhost:3000/users';
 const urlMatch = 'http://localhost:3000/matches';
 
 // List of all users
 const userStore = useUserStore();
 const { users } = storeToRefs(userStore);
-
-// Single user
-const user = ref<User | null>(null);
-
 // List of all Matches
 const dataMatches: any = ref(null);
 
 // Single user
+const user = ref<User | null>(null);
+// Single match
 const match: any = ref({});
 
 // Track forms inputs
-const inputs = ref({
+const input = ref({
   search: '',
   create: '',
-  update_name: '',
-  update_id: '',
-  id_input: '',
-  p1_input: '',
-  p2_input: '',
-  s1_input: '',
-  s2_input: '',
-  update_id_match: '',
+  update: '',
+  user_id: '',
+  match_id: '',
+  p1: '',
+  p2: '',
+  s1: '',
+  s2: '',
+  update_match_id: '',
   update_p1: '',
   update_p2: '',
   update_s1: '',
@@ -60,7 +52,7 @@ function filteredDataMatch(id: string) {
 }
 
 onMounted(() => {
-  getAllUsers(url).then(res => (users.value = res.data));
+  Get(urlUser).then(res => (users.value = res.data));
   getAllMatches(urlMatch, dataMatches);
 });
 </script>
@@ -72,15 +64,17 @@ onMounted(() => {
   <h4>Get by name</h4>
   <form
     @submit.prevent.trim.lazy="
-      getUserByUsername(url + '?username=' + inputs.search).then(u => {
-        user = u.data[0];
-        inputs.search = '';
+      Get(urlUser + '?username=' + input.search).then(res => {
+        if (res.status == 200) {
+          user = res.data[0];
+        }
+        input.search = '';
       })
     "
     method="GET"
   >
     <label for="name">Username:</label>
-    <input v-model="inputs.search" name="username" type="text" />
+    <input v-model="input.search" name="username" type="text" />
     <input type="submit" value="Submit" />
   </form>
   <p>{{ user }}</p>
@@ -88,39 +82,39 @@ onMounted(() => {
   <h4>Create User</h4>
   <form
     @submit.prevent.trim.lazy="
-      createUser(url, inputs.create).then(newUser => {
-        userStore.createUser(newUser);
-        inputs.create = '';
+      Post(urlUser, { username: input.create }).then(res => {
+        if (res.status == 201) {
+          userStore.createUser(res.data);
+        }
+        input.create = '';
       })
     "
     method="POST"
   >
     <label for="name">Username:</label>
-    <input v-model="inputs.create" name="name" type="text" />
+    <input v-model="input.create" name="name" type="text" />
     <input type="submit" value="Submit" />
   </form>
 
   <h4>Update User</h4>
   <form
     @submit.prevent.trim.lazy="
-      updateUser(url + '/' + inputs.update_id, {
-        username: inputs.update_name
+      Patch(urlUser + '/' + input.user_id, {
+        username: input.update
       }).then(res => {
-        if (res.status != 404) {
-          userStore.updateUser(+inputs.update_id, {
-            username: inputs.update_name
-          });
+        if (res.status == 200) {
+          userStore.updateUser(+input.user_id, res.data);
         }
-        inputs.update_name = '';
-        inputs.update_id = '';
+        input.update = '';
+        input.user_id = '';
       })
     "
     method="PATCH"
   >
     <label for="id">id:</label>
-    <input v-model="inputs.update_id" name="id" type="text" />
+    <input v-model="input.user_id" name="id" type="text" />
     <label for="name">new username:</label>
-    <input v-model="inputs.update_name" name="name" type="text" />
+    <input v-model="input.update" name="name" type="text" />
     <input type="submit" value="Submit" />
   </form>
 
@@ -130,8 +124,8 @@ onMounted(() => {
       Id: {{ item.id }}, Username: {{ item.username }}
       <button
         @click="
-          deleteUser(url + '/' + item.id.toString()).then(ret => {
-            if (ret) {
+          Delete(urlUser + '/' + item.id.toString()).then(res => {
+            if (res.status == 200) {
               userStore.deleteUser(item.id);
             }
           })
@@ -148,15 +142,15 @@ onMounted(() => {
   <h4>Get by id</h4>
   <form
     @submit.prevent.trim.lazy="
-      getMatchById(urlMatch + '?id=' + inputs.id_input, match).then(m => {
+      getMatchById(urlMatch + '?id=' + input.match_id, match).then(m => {
         match = m;
-        inputs.id_input = '';
+        input.match_id = '';
       })
     "
     method="GET"
   >
     <label for="name">Id:</label>
-    <input v-model="inputs.id_input" name="id" type="text" />
+    <input v-model="input.match_id" name="id" type="text" />
     <input type="submit" value="Submit" />
   </form>
   <p>{{ match.data }}</p>
@@ -166,26 +160,26 @@ onMounted(() => {
     @submit.prevent.trim.lazy="
       createMatch(
         urlMatch,
-        inputs.p1_input,
-        inputs.p2_input,
-        Number(inputs.s1_input),
-        Number(inputs.s2_input),
+        input.p1,
+        input.p2,
+        Number(input.s1),
+        Number(input.s2),
         dataMatches
       ).then(() => {
-        inputs.p1_input = '';
-        (inputs.p2_input = ''), (inputs.s1_input = ''), (inputs.s2_input = '');
+        input.p1 = '';
+        (input.p2 = ''), (input.s1 = ''), (input.s2 = '');
       })
     "
     method="POST"
   >
     <label for="name">Player1:</label>
-    <input v-model="inputs.p1_input" name="name" type="text" />
+    <input v-model="input.p1" name="name" type="text" />
     <label for="name">Player2:</label>
-    <input v-model="inputs.p2_input" name="name" type="text" />
+    <input v-model="input.p2" name="name" type="text" />
     <label for="name">Score1:</label>
-    <input v-model="inputs.s1_input" name="name" type="text" />
+    <input v-model="input.s1" name="name" type="text" />
     <label for="name">Score2:</label>
-    <input v-model="inputs.s2_input" name="name" type="text" />
+    <input v-model="input.s2" name="name" type="text" />
     <input type="submit" value="Submit" />
   </form>
 
@@ -193,33 +187,33 @@ onMounted(() => {
   <form
     @submit.prevent.trim.lazy="
       updateMatch(
-        inputs.update_id_match,
-        inputs.update_p1,
-        inputs.update_p2,
-        inputs.update_s1,
-        inputs.update_s2,
-        urlMatch + '/' + inputs.update_id_match,
+        input.update_match_id,
+        input.update_p1,
+        input.update_p2,
+        input.update_s1,
+        input.update_s2,
+        urlMatch + '/' + input.update_match_id,
         dataMatches
       ).then(() => {
-        inputs.update_id_match = '';
-        inputs.update_p1 = '';
-        inputs.update_p2 = '';
-        inputs.update_s1 = '';
-        inputs.update_s2 = '';
+        input.update_match_id = '';
+        input.update_p1 = '';
+        input.update_p2 = '';
+        input.update_s1 = '';
+        input.update_s2 = '';
       })
     "
     method="PATCH"
   >
     <label for="id">id:</label>
-    <input v-model="inputs.update_id_match" name="id" type="text" />
+    <input v-model="input.update_match_id" name="id" type="text" />
     <label for="name">Player1:</label>
-    <input v-model="inputs.update_p1" name="name" type="text" />
+    <input v-model="input.update_p1" name="name" type="text" />
     <label for="name">Player2:</label>
-    <input v-model="inputs.update_p2" name="name" type="text" />
+    <input v-model="input.update_p2" name="name" type="text" />
     <label for="name">Score1:</label>
-    <input v-model="inputs.update_s1" name="name" type="text" />
+    <input v-model="input.update_s1" name="name" type="text" />
     <label for="name">Score2:</label>
-    <input v-model="inputs.update_s2" name="name" type="text" />
+    <input v-model="input.update_s2" name="name" type="text" />
     <input type="submit" value="Submit" />
   </form>
 

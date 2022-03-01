@@ -1,10 +1,6 @@
 {
   "users": [
     {
-      "id": 4,
-      "username": "user4"
-    },
-    {
       "username": "user5",
       "id": 5
     },
@@ -15,6 +11,10 @@
     {
       "username": "test3",
       "id": 8
+    },
+    {
+      "username": "jonny",
+      "id": 9
     }
   ],
   "matches": [
